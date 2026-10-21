@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import QuickSale from './components/QuickSale';
-import AddItem from './components/AddItem';
+import QuickSale from './Quicksale';
+import AddItem from './Additem';
+import CustomerOrders from './Customerorders';
+import VoiceSale from './Voicesale';
 
 type TabId = 'sale' | 'add' | 'orders';
 
@@ -31,15 +33,6 @@ const NEO =
   'border-[2.5px] border-ink shadow-neo transition-none ' +
   'active:translate-x-1 active:translate-y-1 active:shadow-none';
 
-function Placeholder({ title, note }: { title: string; note: string }) {
-  return (
-    <section className="border-[2.5px] border-ink bg-white p-5 shadow-neo">
-      <h2 className="font-display text-3xl font-extrabold leading-tight">{title}</h2>
-      <p className="mt-2 font-body text-lg font-medium">{note}</p>
-    </section>
-  );
-}
-
 export default function App() {
   const [tab, setTab] = useState<TabId>('sale');
 
@@ -53,11 +46,14 @@ export default function App() {
 
       {/* Tab content: padded so nothing hides behind the fixed bars */}
       <main className="flex-1 px-4 pb-32 pt-5">
-        {tab === 'sale' && <QuickSale onAddItem={() => setTab('add')} />}
-        {tab === 'add' && <AddItem />}
-        {tab === 'orders' && (
-          <Placeholder title="Orders" note="Smart reorder list goes here." />
+        {tab === 'sale' && (
+          <div className="flex flex-col gap-5">
+            <VoiceSale />
+            <QuickSale onAddItem={() => setTab('add')} />
+          </div>
         )}
+        {tab === 'add' && <AddItem />}
+        {tab === 'orders' && <CustomerOrders shopName={SHOP_NAME} />}
       </main>
 
       {/* Sticky bottom navigation */}

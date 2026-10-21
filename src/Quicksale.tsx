@@ -8,7 +8,7 @@ import {
   toBaseQty,
   UNIT_META,
   type Product,
-} from '../db/db';
+} from './db/db';
 
 const NEO =
   'border-[2.5px] border-ink shadow-neo transition-none ' +

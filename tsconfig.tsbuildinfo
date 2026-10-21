@@ -1,0 +1,1 @@
+{"root":["./src/additem.tsx","./src/app.tsx","./src/customerorders.tsx","./src/quicksale.tsx","./src/voicesale.tsx","./src/main.tsx","./src/ui.tsx","./src/vite-env.d.ts","./src/db/db.ts","./src/utils/gemma.ts","./src/utils/whatsapp.ts","./vite.config.ts"],"version":"5.9.3"}

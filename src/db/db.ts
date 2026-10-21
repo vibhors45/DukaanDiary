@@ -30,6 +30,14 @@ export interface Sale {
   date: number;  // epoch milliseconds (integer)
 }
 
+export interface Customer {
+  id?: number;
+  name: string;
+  phone: string;     // 10-digit Indian mobile, no country code
+  balance: number;   // integer paise the customer still owes ("You'll get")
+  updatedAt: number; // epoch ms of the last ledger change
+}
+
 /** How each base unit maps to what the shopkeeper sees and prices by. */
 export const UNIT_META: Record<Unit, { display: string; factor: number }> = {
   g: { display: 'kg', factor: 1000 },
@@ -69,6 +77,7 @@ export const formatRupees = (paise: number): string =>
 export const db = new Dexie('DukaanDairyDB') as Dexie & {
   products: EntityTable<Product, 'id'>;
   sales: EntityTable<Sale, 'id'>;
+  customers: EntityTable<Customer, 'id'>;
 };
 
 db.version(1).stores({
@@ -80,4 +89,11 @@ db.version(1).stores({
 db.version(2).stores({
   products: '++id, name, barcode',
   sales: '++id, productId, date',
+});
+
+// v3: customer ledgers (udhar). Existing tables are untouched.
+db.version(3).stores({
+  products: '++id, name, barcode',
+  sales: '++id, productId, date',
+  customers: '++id, phone, balance',
 });
