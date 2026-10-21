@@ -1,57 +1,38 @@
 @import "tailwindcss";
 
-/* 1. Vibrant animated gradient background to make the glass pop */
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-  background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
+  /* Premium Dark Startup Background */
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  background-attachment: fixed;
   color: #ffffff;
   font-family: 'Hind', sans-serif;
 }
 
-@keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 h1, h2, h3, .nav-title {
   font-family: 'Baloo 2', sans-serif !important;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* 2. Universal Glassmorphism Panel Style */
+/* Perfected Glassmorphism for readability */
 .glass-panel, input, .card-container, button, [class*="bg-white"] {
-  background: rgba(255, 255, 255, 0.15) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 16px !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2) !important;
   color: #ffffff !important;
-  transition: all 0.3s ease;
-}
-
-/* 3. Button specific hover and press states */
-button:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  transform: translateY(-2px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
 }
 
 button:active {
-  transform: translateY(2px);
-  background: rgba(255, 255, 255, 0.1) !important;
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
-/* 4. Inputs need placeholder adjustments for the dark/glass background */
-input::placeholder {
-  color: rgba(255, 255, 255, 0.7) !important;
-}
-input:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.25) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+/* Accent Color for Primary Buttons (Electric Green) */
+.bg-green-accent {
+  background: rgba(0, 230, 118, 0.8) !important;
+  color: #000 !important;
+  font-weight: 800 !important;
 }
