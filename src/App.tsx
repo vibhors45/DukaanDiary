@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react';
+import QuickSale from './components/QuickSale';
+import AddItem from './components/AddItem';
 
 type TabId = 'sale' | 'add' | 'orders';
 
@@ -51,12 +53,8 @@ export default function App() {
 
       {/* Tab content: padded so nothing hides behind the fixed bars */}
       <main className="flex-1 px-4 pb-32 pt-5">
-        {tab === 'sale' && (
-          <Placeholder title="Quick sale" note="3-tap sale logger goes here." />
-        )}
-        {tab === 'add' && (
-          <Placeholder title="Add item" note="New product form goes here." />
-        )}
+        {tab === 'sale' && <QuickSale onAddItem={() => setTab('add')} />}
+        {tab === 'add' && <AddItem />}
         {tab === 'orders' && (
           <Placeholder title="Orders" note="Smart reorder list goes here." />
         )}

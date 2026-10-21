@@ -18,6 +18,8 @@ export interface Product {
   stock: number;        // integer, in base unit
   salePrice: number;    // integer paise per display unit (kg / L / pc)
   purchasePrice: number; // integer paise per display unit (kg / L / pc)
+  barcode?: string;      // optional, indexed for future scanning
+  stockAsOf?: number;    // epoch ms of the opening-stock count
 }
 
 export interface Sale {
@@ -51,6 +53,12 @@ export const formatQty = (qty: number, unit: Unit): string => {
 export const calcTotal = (qty: number, pricePerDisplayUnit: number, unit: Unit): number =>
   Math.round((qty * pricePerDisplayUnit) / UNIT_META[unit].factor);
 
+/** "62.5" -> 6250 paise. String-based so no float ever touches money. */
+export const toPaise = (rupees: string): number => {
+  const [whole = '', frac = ''] = rupees.trim().split('.');
+  return (parseInt(whole || '0', 10) * 100) + parseInt((frac + '00').slice(0, 2), 10);
+};
+
 /** Paise -> "₹62.50" for display. */
 export const formatRupees = (paise: number): string =>
   `₹${(paise / 100).toLocaleString('en-IN', {
@@ -65,5 +73,11 @@ export const db = new Dexie('DukaanDairyDB') as Dexie & {
 
 db.version(1).stores({
   products: '++id, name',
+  sales: '++id, productId, date',
+});
+
+// v2: index barcode (non-unique, optional). Existing rows are untouched.
+db.version(2).stores({
+  products: '++id, name, barcode',
   sales: '++id, productId, date',
 });
