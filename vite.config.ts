@@ -11,7 +11,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png'],
       manifest: {
-        name: 'Dukaan Dairy',
+        name: 'Dukaan diary',
         short_name: 'Dukaan',
         description: 'Offline-first stock and reorder app for daily essentials.',
         theme_color: '#FDF6E3',

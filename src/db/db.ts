@@ -74,7 +74,7 @@ export const formatRupees = (paise: number): string =>
     maximumFractionDigits: 2,
   })}`;
 
-export const db = new Dexie('DukaanDairyDB') as Dexie & {
+export const db = new Dexie('DukaandiaryDB') as Dexie & {
   products: EntityTable<Product, 'id'>;
   sales: EntityTable<Sale, 'id'>;
   customers: EntityTable<Customer, 'id'>;

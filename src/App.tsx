@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import QuickSale from './Quicksale';
 import AddItem from './Additem';
 import CustomerOrders from './Customerorders';
@@ -12,7 +12,6 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleLogin = () => {
     setLoading(true);
-    // Instantly logs you in without waiting for Supabase
     setTimeout(() => {
       onLogin();
     }, 400); 
@@ -20,8 +19,16 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 text-center text-white">
-      {/* Uses your exact image file name from the sidebar */}
-      <img src="/logod1.png.jpeg" alt="DukaanDiary Logo" className="w-64 mb-10 drop-shadow-xl rounded-2xl" />
+      <img 
+        src="/logod1.png.jpeg" 
+        alt="Dukaan Dairy" 
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+          document.getElementById('logo-fallback')!.style.display = 'block';
+        }}
+        className="w-64 mb-10 drop-shadow-xl rounded-2xl" 
+      />
+      <h1 id="logo-fallback" style={{ display: 'none' }} className="text-5xl font-extrabold mb-10 text-[#00E676] drop-shadow-lg">DukaanDairy</h1>
       
       <input
         type="email"
@@ -70,7 +77,6 @@ export default function App() {
         ) : (
           <>
             <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-white/20 bg-white/10 px-5 py-4 backdrop-blur-md shadow-sm">
-              {/* Uses your exact icon file name from the sidebar */}
               <img src="/logod.png.jpeg" alt="Logo Icon" className="w-12 h-12 rounded-xl border border-white/30 shadow-sm object-cover bg-white" />
               <div>
                 <h1 className="font-display text-2xl font-extrabold leading-none text-white drop-shadow-md">Dukaan Dairy</h1>

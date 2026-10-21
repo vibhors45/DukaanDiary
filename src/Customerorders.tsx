@@ -1,271 +1,97 @@
 import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, formatRupees, toPaise, type Customer } from './db/db';
-import { Field, NEO, NeoInput, cleanDecimal } from './ui';
 
-type Errors = Partial<Record<'name' | 'phone' | 'amount', string>>;
+// Synthetic Data for the Demo
+const DEMO_INVENTORY = [
+  { id: 1, name: 'Amul Taaza Milk 500ml', price: 28 },
+  { id: 2, name: 'Paneer 200g', price: 85 },
+  { id: 3, name: 'Parle-G Gold', price: 20 },
+  { id: 4, name: 'Aashirvaad Atta 5kg', price: 230 }
+];
 
-const openWhatsApp = (phone: string, text: string) =>
-  window.open(
-    `https://wa.me/91${phone}?text=${encodeURIComponent(text)}`,
-    '_blank',
-    'noopener,noreferrer',
-  );
-
-const prettyPhone = (p: string) => `+91 ${p.slice(0, 5)} ${p.slice(5)}`;
+const DEMO_CUSTOMERS = [
+  { id: 1, name: 'Sharma Ji', phone: '9876543210', pending: 450, lastDate: 'Today' },
+  { id: 2, name: 'Verma Aunty', phone: '9876543211', pending: 120, lastDate: 'Yesterday' },
+];
 
 export default function CustomerOrders({ shopName }: { shopName: string }) {
-  const ledgers = useLiveQuery(
-    async () =>
-      (await db.customers.where('balance').above(0).toArray()).sort(
-        (a, b) => b.balance - a.balance,
-      ),
-    [],
-  );
-
-  const [name, setName] = useState('');
+  const [customer, setCustomer] = useState('');
   const [phone, setPhone] = useState('');
-  const [amount, setAmount] = useState('');
-  const [addToLedger, setAddToLedger] = useState(true);
-  const [errors, setErrors] = useState<Errors>({});
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [cart, setCart] = useState<{name: string, qty: number, price: number}[]>([]);
+  const [selectedItem, setSelectedItem] = useState(DEMO_INVENTORY[0].id);
+  const [qty, setQty] = useState(1);
 
-  const flash = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2200);
-  };
+  const totalBill = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-  const clearError = (key: keyof Errors) =>
-    setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e));
-
-  const resetForm = () => {
-    setName('');
-    setPhone('');
-    setAmount('');
-    setErrors({});
-  };
-
-  const sendBill = async () => {
-    if (saving) return;
-
-    // 1. Validate synchronously so window.open below still counts as the tap's own action.
-    const trimmed = name.trim();
-    const amountPaise = amount ? toPaise(amount) : 0;
-    const found: Errors = {};
-    if (!trimmed) found.name = 'Enter the customer name.';
-    if (!/^[6-9]\d{9}$/.test(phone)) found.phone = 'Enter a 10-digit mobile number.';
-    if (amountPaise <= 0) found.amount = 'Enter an amount above 0.';
-    if (Object.keys(found).length > 0) {
-      setErrors(found);
-      return;
-    }
-
-    // 2. Open WhatsApp first (before any await, or phone browsers block the popup).
-    const previous = addToLedger ? (ledgers?.find((c) => c.phone === phone)?.balance ?? 0) : 0;
-    const lines = [`Namaste ${trimmed},`, `Your bill at ${shopName}: ${formatRupees(amountPaise)}.`];
-    if (addToLedger) lines.push(`Total pending: ${formatRupees(previous + amountPaise)}.`);
-    lines.push('Thank you!');
-    openWhatsApp(phone, lines.join('\n'));
-
-    // 3. Record it in the ledger, one atomic transaction.
-    if (!addToLedger) {
-      resetForm();
-      flash(`Bill sent to ${trimmed}`);
-      return;
-    }
-    setSaving(true);
-    try {
-      await db.transaction('rw', db.customers, async () => {
-        const existing = await db.customers.where('phone').equals(phone).first();
-        const now = Date.now();
-        if (existing?.id) {
-          await db.customers.update(existing.id, {
-            balance: existing.balance + amountPaise,
-            updatedAt: now,
-          });
-        } else {
-          await db.customers.add({ name: trimmed, phone, balance: amountPaise, updatedAt: now });
-        }
-      });
-      resetForm();
-      flash(`Bill sent. ${formatRupees(amountPaise)} added to ${trimmed}`);
-    } catch {
-      flash('Bill opened, but the ledger did not save. Tap again.');
-    } finally {
-      setSaving(false);
+  const handleAddItem = () => {
+    const item = DEMO_INVENTORY.find(i => i.id === selectedItem);
+    if (item) {
+      setCart([...cart, { name: item.name, price: item.price, qty }]);
     }
   };
 
-  const sendReminder = (c: Customer) =>
-    openWhatsApp(
-      c.phone,
-      `Namaste ${c.name}, a gentle reminder from ${shopName}: your pending balance is ${formatRupees(
-        c.balance,
-      )}. Please pay when you can. Thank you!`,
-    );
-
-  const markPaid = async (c: Customer) => {
-    if (!c.id) return;
-    if (confirmId !== c.id) {
-      setConfirmId(c.id);
-      window.setTimeout(() => setConfirmId((cur) => (cur === c.id ? null : cur)), 3000);
-      return;
-    }
-    setConfirmId(null);
-    await db.customers.update(c.id, { balance: 0, updatedAt: Date.now() });
-    flash(`${c.name} is settled`);
+  const sendWhatsApp = () => {
+    if (!phone || cart.length === 0) return alert("Add phone and items!");
+    let msg = `*${shopName} - Aapka Bill*\nNamaste ${customer},\n\n`;
+    cart.forEach(item => {
+      msg += `${item.name} x ${item.qty} = ₹${item.price * item.qty}\n`;
+    });
+    msg += `\n*Total Amount: ₹${totalBill}*\n\nPlease pay via UPI.`;
+    window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`);
   };
-
-  const totalPending = (ledgers ?? []).reduce((sum, c) => sum + c.balance, 0);
 
   return (
-    <div className="flex flex-col gap-10">
-      {/* Top half: draft bill */}
-      <section className="flex flex-col gap-5">
-        <h2 className="font-display text-3xl font-extrabold leading-tight">Draft bill</h2>
+    <div className="flex flex-col gap-6 text-white pb-20">
+      {/* Generate Bill Section */}
+      <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-lg">
+        <h2 className="text-xl font-extrabold mb-4 text-[#00E676]">Generate New Bill</h2>
+        
+        <input type="text" placeholder="Customer Name (e.g. Sharma Ji)" value={customer} onChange={e => setCustomer(e.target.value)} className="w-full p-3 mb-3 bg-black/30 rounded-xl border border-white/20 text-white placeholder-white/50" />
+        <input type="tel" placeholder="Phone Number (+91)" value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-3 mb-4 bg-black/30 rounded-xl border border-white/20 text-white placeholder-white/50" />
 
-        <Field label="Customer name" error={errors.name}>
-          <NeoInput
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              clearError('name');
-            }}
-            placeholder="e.g. Sharma ji"
-            autoComplete="off"
-          />
-        </Field>
-
-        <Field label="Phone" error={errors.phone}>
-          <NeoInput
-            prefix="+91"
-            value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
-              clearError('phone');
-            }}
-            placeholder="98765 43210"
-            inputMode="tel"
-            autoComplete="off"
-          />
-        </Field>
-
-        <Field label="Total amount" error={errors.amount}>
-          <NeoInput
-            prefix="₹"
-            value={amount}
-            onChange={(e) => {
-              setAmount(cleanDecimal(e.target.value, 2));
-              clearError('amount');
-            }}
-            placeholder="0"
-            inputMode="decimal"
-          />
-        </Field>
-
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={addToLedger}
-          onClick={() => setAddToLedger((v) => !v)}
-          className={`${NEO} flex h-14 items-center gap-3 bg-white px-3 text-left font-body text-lg font-medium`}
-        >
-          <span
-            className={`flex h-8 w-8 shrink-0 items-center justify-center border-[2.5px] border-ink ${
-              addToLedger ? 'bg-go' : 'bg-white'
-            }`}
-          >
-            {addToLedger && (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square" aria-hidden="true">
-                <path d="M4 12l5 5L20 6" />
-              </svg>
-            )}
-          </span>
-          Add to pending balance
-        </button>
-
-        <button
-          type="button"
-          onClick={sendBill}
-          disabled={saving}
-          className={`${NEO} h-16 w-full bg-go font-display text-2xl font-extrabold disabled:bg-white`}
-        >
-          Send Bill on WhatsApp
-        </button>
-      </section>
-
-      {/* Bottom half: pending ledgers */}
-      <section className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-3">
-          <h2 className="font-display text-3xl font-extrabold leading-tight">Pending balances</h2>
-          {totalPending > 0 && (
-            <p className="border-[2.5px] border-ink bg-go px-2 py-1 font-display text-lg font-extrabold leading-tight shadow-neo">
-              {formatRupees(totalPending)}
-            </p>
-          )}
+        <div className="flex gap-2 mb-4">
+          <select value={selectedItem} onChange={e => setSelectedItem(Number(e.target.value))} className="flex-1 p-3 bg-black/50 rounded-xl border border-white/20 text-white">
+            {DEMO_INVENTORY.map(item => <option key={item.id} value={item.id}>{item.name} - ₹{item.price}</option>)}
+          </select>
+          <input type="number" min="1" value={qty} onChange={e => setQty(Number(e.target.value))} className="w-20 p-3 bg-black/30 rounded-xl border border-white/20 text-white text-center" />
+          <button onClick={handleAddItem} className="bg-blue-500 p-3 rounded-xl font-bold">+</button>
         </div>
 
-        {ledgers && ledgers.length === 0 && (
-          <div className="border-[2.5px] border-ink bg-white p-5 shadow-neo">
-            <p className="font-display text-2xl font-extrabold">All paid up</p>
-            <p className="mt-1 text-lg">Bills you add to a pending balance show up here.</p>
+        {cart.length > 0 && (
+          <div className="mb-4 bg-black/20 p-3 rounded-xl border border-white/10">
+            {cart.map((c, i) => (
+              <div key={i} className="flex justify-between text-sm mb-1">
+                <span>{c.qty}x {c.name}</span>
+                <span>₹{c.price * c.qty}</span>
+              </div>
+            ))}
+            <div className="border-t border-white/20 mt-2 pt-2 flex justify-between font-bold text-[#00E676] text-lg">
+              <span>Total:</span>
+              <span>₹{totalBill}</span>
+            </div>
           </div>
         )}
 
-        <ul className="flex flex-col gap-4">
-          {ledgers?.map((c) => {
-            const confirming = confirmId === c.id;
-            return (
-              <li key={c.id} className="border-[2.5px] border-ink bg-white p-4 shadow-neo">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-display text-2xl font-extrabold leading-tight">
-                      {c.name}
-                    </h3>
-                    <p className="text-base">{prettyPhone(c.phone)}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-base">You'll get</p>
-                    <p className="font-display text-3xl font-extrabold leading-none">
-                      {formatRupees(c.balance)}
-                    </p>
-                  </div>
-                </div>
+        <button onClick={sendWhatsApp} className="w-full p-4 bg-[#00E676] text-black font-extrabold rounded-xl active:scale-95 transition-transform shadow-lg">
+          Send Bill on WhatsApp
+        </button>
+      </div>
 
-                <div className="mt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => sendReminder(c)}
-                    className={`${NEO} h-14 flex-1 bg-warn font-display text-xl font-extrabold`}
-                  >
-                    Send Reminder
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => markPaid(c)}
-                    className={`${NEO} h-14 w-32 font-display text-lg font-extrabold leading-tight ${
-                      confirming ? 'bg-danger' : 'bg-white'
-                    }`}
-                  >
-                    {confirming ? 'Tap to confirm' : 'Mark paid'}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      {toast && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-28 z-40 border-[2.5px] border-ink bg-warn px-4 py-3 font-display text-lg font-extrabold shadow-neo"
-        >
-          {toast}
-        </div>
-      )}
+      {/* Customer Management Section */}
+      <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-lg">
+        <h2 className="text-xl font-extrabold mb-4 text-[#FFD600]">Pending Khata (Ledger)</h2>
+        {DEMO_CUSTOMERS.map(c => (
+          <div key={c.id} className="flex justify-between items-center mb-3 bg-black/20 p-4 rounded-xl border border-white/10">
+            <div>
+              <p className="font-bold">{c.name}</p>
+              <p className="text-xs text-white/60">Last updated: {c.lastDate}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-extrabold text-[#FF3D00]">₹{c.pending}</p>
+              <button className="text-xs bg-yellow-500 text-black px-3 py-1 rounded-md mt-1 font-bold">Remind</button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
